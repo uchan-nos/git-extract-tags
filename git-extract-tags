@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import os.path
+import shutil
+import tarfile
+import tempfile
+
+import git
+
+
+def list_tag_names(repo, filter_tag_prefix):
+    return (t.name for t in repo.tags
+            if t.name.startswith(filter_tag_prefix))
+
+
+def extract_files(repo, tag_name, dest_dir_path):
+    if os.path.exists(dest_dir_path):
+        shutil.rmtree(dest_dir_path)
+
+    with tempfile.TemporaryFile() as tmp_file:
+        repo.archive(tmp_file, treeish=tag_name, format='tar')
+        tmp_file.seek(0)
+        os.makedirs(dest_dir_path)
+        with tarfile.open(fileobj=tmp_file) as tar_file:
+            tar_file.extractall(dest_dir_path)
+
+
+def get_ignored_files(gitignore_path):
+    with open(gitignore_path) as ignore_file:
+        return set(line.strip() for line in ignore_file.readlines())
+
+
+def add_gitignore(gitignore_path, names):
+    if not isinstance(names, set):
+        names = set(names)
+
+    if os.path.exists(gitignore_path):
+        ignored_files = get_ignored_files(gitignore_path)
+    else:
+        ignored_files = set()
+
+    with open(gitignore_path, 'a') as ignore_file:
+        for name in (names - ignored_files):
+            ignore_file.write(name + '\n')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--src-base', default='./src')
+    parser.add_argument('-i', '--add-ignore', action='store_true')
+    parser.add_argument('tag_prefix')
+    parser.add_argument('prog_repo')
+    ns = parser.parse_args()
+
+    prog_repo = git.Repo(ns.prog_repo)
+    tag_names = list_tag_names(prog_repo, ns.tag_prefix)
+
+    text_repo = git.Repo('.')
+    text_repo_base = os.path.dirname(text_repo.common_dir)
+    gitignore_path = os.path.join(text_repo_base, '.gitignore')
+
+    dest_dirs = []
+    for tag_name in tag_names:
+        tag_wo_prefix = tag_name[len(ns.tag_prefix):]
+        dest_dir_path = os.path.join(ns.src_base, tag_wo_prefix)
+        dest_dirs.append(dest_dir_path)
+
+        print('extracting', tag_name, 'to', dest_dir_path)
+        extract_files(prog_repo, tag_name, dest_dir_path)
+
+    if ns.add_ignore:
+        add_gitignore(gitignore_path, dest_dirs)
+
+
+if __name__ == '__main__':
+    main()
