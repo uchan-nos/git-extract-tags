@@ -8,6 +8,9 @@ This tool will work well two-repository model, such as:
 - textbook repository which contains source codes for the textbook.
 - program repository which contains source codes for the target program.
 
+（日本語専用）
+詳しい使い方をブログで紹介しています
+[「30 日でできる！OS 自作入門」のような段階的に進展するプログラムについての解説書の執筆を Git で支援する](http://uchan.hateblo.jp/entry/2018/08/11/191600)
 
 ## Typical situation this tool addresses
 
