@@ -12,6 +12,19 @@ This tool will work well two-repository model, such as:
 詳しい使い方をブログで紹介しています  
 [「30 日でできる！OS 自作入門」のような段階的に進展するプログラムについての解説書の執筆を Git で支援する](http://uchan.hateblo.jp/entry/2018/08/11/191600)
 
+## How to setup
+
+Clone this repository and create symlink in a directory where is included in $PATH variable.
+git-extract-tags requires GitPython library.
+
+Example:
+
+    $ cd /path/to/somewhere
+    $ git clone https://github.com/uchan-nos/git-extract-tags.git
+    $ cd /usr/local/bin
+    $ sudo ln -s /path/to/somewhere/git-extract-tags ./
+    $ sudo pip3 install gitpython
+
 ## Typical situation this tool addresses
 
 Typical usage of this tool is for a textbook which explains a large program,
