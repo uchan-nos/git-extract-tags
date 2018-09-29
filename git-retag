@@ -1,0 +1,161 @@
+#!/usr/bin/python3
+
+import argparse
+import difflib
+import sys
+import time
+
+import git
+
+
+PRINT_LINE_TMPL = '{old_commit:40}{space:12}{new_commit:40} {tag}'
+
+
+class CommitAttr:
+    def __init__(self):
+        self.tags = []
+        self.corresponding_commit = None
+
+    def __str__(self):
+        return '[{},{}]'.format(self.tags, self.corresponding_commit)
+
+
+def list_tags(repo, filter_tag_prefix):
+    return (t for t in repo.tags if t.name.startswith(filter_tag_prefix))
+
+
+def get_commit_sha(commit: git.Commit):
+    return commit.binsha
+
+
+def commits_until(repo: git.Repo, branch: git.Head, until_commit: git.Commit):
+    commits = []
+    for commit in repo.iter_commits(branch):
+        if get_commit_sha(commit) == get_commit_sha(until_commit):
+            break
+        commits.append(commit)
+    return commits
+
+
+def get_or_exit_commit(repo: git.Repo, rev: str) -> git.Commit:
+    try:
+        return next(git.Commit.iter_items(repo, rev))
+    except StopIteration:
+        print('Could not find "{}" in this repository.'.format(rev))
+        sys.exit(1)
+
+
+def get_authored_date_str(commit: git.Commit) -> str:
+    return time.strftime('%a %b %d %H:%M:%S %Y',
+                         time.gmtime(commit.authored_date))
+
+
+def associate_tag(commit_dict: dict, tag: git.Tag):
+    tag_commit_sha = get_commit_sha(tag.object)
+    if tag_commit_sha not in commit_dict:
+        return
+    commit_dict[tag_commit_sha].tags.append(tag)
+
+
+def print_old_new(old_commit: git.Commit, old_attr: CommitAttr):
+    old_sha = get_commit_sha(old_commit)
+    new_commit = old_attr.corresponding_commit
+    new_sha = get_commit_sha(new_commit) if new_commit else None
+    new_sha_str = new_sha.hex() if new_sha else '(no corresponding new commit)'
+    new_authored_date = get_authored_date_str(new_commit) if new_commit else ''
+    new_commit_message = new_commit.message[:40].strip() if new_commit else ''
+
+    retag = len(old_attr.tags) > 0
+
+    tags_str = ' '.join(t.name for t in old_attr.tags)
+    print(PRINT_LINE_TMPL.format(
+        old_commit=old_sha.hex(),
+        space=(' --retag--> ' if retag else ''),
+        new_commit=new_sha_str,
+        tag=(tags_str if retag else '')))
+    print(PRINT_LINE_TMPL.format(
+        old_commit=get_authored_date_str(old_commit),
+        space='',
+        new_commit=new_authored_date,
+        tag=''))
+    print(PRINT_LINE_TMPL.format(
+        old_commit=old_commit.message[:40].strip(),
+        space='',
+        new_commit=new_commit_message,
+        tag=''))
+    print()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('tag_prefix')
+    parser.add_argument('old_branch')
+    parser.add_argument('new_branch', nargs='?')
+    ns = parser.parse_args()
+
+    repo = git.Repo('.')
+
+    old_branch = get_or_exit_commit(repo, ns.old_branch)
+
+    new_branch = repo.active_branch
+    if ns.new_branch is not None:
+        new_branch = get_or_exit_commit(repo, ns.new_branch)
+
+    merge_base = repo.merge_base(old_branch, new_branch)
+    if len(merge_base) == 0:
+        print('Could not find a merge base between\n  {}\nand\n  {}.'.format(
+            old_branch, new_branch))
+        sys.exit(1)
+    merge_base = merge_base[0]
+
+    old_commits = commits_until(repo, old_branch, merge_base)
+    new_commits = commits_until(repo, new_branch, merge_base)
+    old_len = len(old_commits)
+
+    # { commit-sha: attr }
+    old_commit_dict = {get_commit_sha(c): CommitAttr() for c in old_commits}
+
+    old_commits = list(reversed(old_commits))
+    new_commits = list(reversed(new_commits))
+
+    tags = list_tags(repo, ns.tag_prefix)
+    for tag in tags:
+        associate_tag(old_commit_dict, tag)
+
+    new_index = 0
+    for old_commit in old_commits:
+        old_sha = get_commit_sha(old_commit)
+        old_authored_date = old_commit.authored_date
+        # find same date
+        for i in range(new_index, len(new_commits)):
+            if new_commits[i].authored_date != old_authored_date:
+                continue
+            old_commit_dict[old_sha].corresponding_commit = new_commits[i]
+            new_index = i + 1
+            break
+
+    print('{:>25} = {}'.format('merge base', get_commit_sha(merge_base).hex()))
+    print('{:^92}'.format('/\\'))
+    print('{:^40}{:^12}{:^40}'.format('OLD COMMITS', ".-'  `-.", 'NEW COMMITS'))
+    print('{:^92}'.format('/        \\'))
+
+    for old_commit in old_commits:
+        old_sha = get_commit_sha(old_commit)
+        old_attr = old_commit_dict[old_sha]
+        print_old_new(old_commit, old_attr)
+
+        if not old_attr.tags:
+            continue  # no tag on this commit
+        if ns.dry_run:
+            continue
+
+        for tag in old_attr.tags:
+            git.TagReference.create(repo,
+                                    tag.name,
+                                    old_attr.corresponding_commit,
+                                    force=True)
+
+
+if __name__ == '__main__':
+    main()

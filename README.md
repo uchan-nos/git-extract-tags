@@ -89,3 +89,32 @@ Above commands extract files of `rgpbook-XX` tag to `src/rpgbook-XX` directory.
 If there are 2 tags, rpgbook-sec1 and rpgbook-sec2, then 2 directoeis,
 src/rpgbook-sec1 and src/rpgbook-sec2, are re-created (removed then made)
 with files from corresponding tags.
+
+# git-retag
+
+This command moves tags to each corresponding commit. It will help you to retag
+when you have made some fixes to earlier history of the target software.
+
+Imagine following git history of two branches (master and fix-some-bug).
+
+master:
+- D "Battle with enemies"                rag: rpgbook-sec3
+- C "Add events"                         rag: rpgbook-sec2
+- B "Add a game loop with one player"    tag: rpgbook-sec1
+- A "Initial commit"
+
+fix-some-bug:
+- D' "Battle with enemies"
+- C' "Add events"
+- E "Fix player name"
+- B "Add a game loop with one player"    tag: rpgbook-sec1
+- A "Initial commit"
+
+You may want to set tag "rpgbook-sec1" to E, "rpgbook-sec2" to C',
+and "rpgbook-sec3" to D'. This can be done by deleting three tags and adding
+these to each commit, but this is a bother, isn't it?
+
+git-retag command helps you! The following command will re-tag all three tags
+to corresponding commits.
+
+    $ git retag rpgbook- master fix-some-bug
