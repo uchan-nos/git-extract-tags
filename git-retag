@@ -57,6 +57,10 @@ def associate_tag(commit_dict: dict, tag: git.Tag):
     commit_dict[tag_commit_sha].tags.append(tag)
 
 
+def strip_message(message: str) -> str:
+    return message.replace('\n', ' ').strip()[:40]
+
+
 def print_old_new(old_commit: git.Commit, old_attr: CommitAttr):
     old_sha = get_commit_sha(old_commit)
     new_commit = old_attr.corresponding_commit
@@ -79,9 +83,9 @@ def print_old_new(old_commit: git.Commit, old_attr: CommitAttr):
         new_commit=new_authored_date,
         tag=''))
     print(PRINT_LINE_TMPL.format(
-        old_commit=old_commit.message[:40].strip(),
+        old_commit=strip_message(old_commit.message),
         space='',
-        new_commit=new_commit_message,
+        new_commit=strip_message(new_commit.message) if new_commit else '',
         tag=''))
     print()
 
