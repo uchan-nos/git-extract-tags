@@ -22,7 +22,7 @@ Example:
     $ cd /path/to/somewhere
     $ git clone https://github.com/uchan-nos/git-extract-tags.git
     $ cd /usr/local/bin
-    $ sudo ln -s /path/to/somewhere/git-extract-tags ./
+    $ sudo ln -s /path/to/somewhere/git-* ./
     $ sudo pip3 install gitpython
 
 ## Typical situation this tool addresses
