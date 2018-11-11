@@ -98,8 +98,8 @@ when you have made some fixes to earlier history of the target software.
 Imagine following git history of two branches (master and fix-some-bug).
 
 master:
-- D "Battle with enemies"                rag: rpgbook-sec3
-- C "Add events"                         rag: rpgbook-sec2
+- D "Battle with enemies"                tag: rpgbook-sec3
+- C "Add events"                         tag: rpgbook-sec2
 - B "Add a game loop with one player"    tag: rpgbook-sec1
 - A "Initial commit"
 
