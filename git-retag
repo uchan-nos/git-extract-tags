@@ -98,7 +98,7 @@ def main():
     parser.add_argument('new_branch', nargs='?')
     ns = parser.parse_args()
 
-    repo = git.Repo('.')
+    repo = git.Repo('.', search_parent_directories=True)
 
     old_branch = get_or_exit_commit(repo, ns.old_branch)
 
