@@ -4,6 +4,7 @@ import argparse
 import os
 import os.path
 import shutil
+import sys
 import tarfile
 import tempfile
 
@@ -50,12 +51,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--src-base', default='./src')
     parser.add_argument('-i', '--add-ignore', action='store_true')
+    parser.add_argument('--filter-prefix')
     parser.add_argument('tag_prefix')
     parser.add_argument('prog_repo')
     ns = parser.parse_args()
 
+    filter_prefix = ns.filter_prefix
+    if not filter_prefix:
+        filter_prefix = ns.tag_prefix
+    elif not filter_prefix.startswith(ns.tag_prefix):
+        print('filter_prefix must be prefix of tag_prefix')
+        sys.exit(1)
+
     prog_repo = git.Repo(ns.prog_repo)
-    tag_names = list_tag_names(prog_repo, ns.tag_prefix)
+    tag_names = list_tag_names(prog_repo, filter_prefix)
 
     text_repo = git.Repo('.')
     text_repo_base = os.path.dirname(text_repo.common_dir)
