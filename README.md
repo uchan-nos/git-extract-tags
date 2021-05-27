@@ -118,3 +118,14 @@ git-retag command helps you! The following command will re-tag all three tags
 to corresponding commits.
 
     $ git retag rpgbook- master fix-some-bug
+
+Assume this situation: you have added a commit (named "hoge-fix") to just
+after the commit "handle close button", then rebased the branch "new-day30f"
+onto the added commit.
+
+![branching sample](images/branching-sample.png)
+
+Now you want to move all tags which tagged on branch "osbook_day30f",
+to the branch "new-day30f". You can use "git retag" command.
+
+![git retag sample](images/git-retag-sample.png)
